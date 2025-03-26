@@ -3,13 +3,15 @@ services:
     $$cap_appname:
         image: offen/docker-volume-backup:$$cap_version
         environment:
+            WEBDAV_URL: $$cap_webdav_url
+            WEBDAV_PATH: $$cap_webdav_path
+            WEBDAV_USERNAME: $$cap_webdav_username
+            WEBDAV_PASSWORD: $$cap_webdav_password
             BACKUP_FILENAME: $$cap_backup_filename
-            BACKUP_ARCHIVE: /archive
             BACKUP_CRON_EXPRESSION: $$cap_backup_cron_expression
             BACKUP_RETENTION_DAYS: $$cap_backup_retention_days
         volumes:
-            - $$cap_volume_to_backup:/backup/data
-            - $$cap_backup_path:/archive
+            - $$cap_volume_to_backup:/backup/data:ro
         restart: always
         caproverExtra:
             notExposeAsWebApp: 'true'
@@ -23,10 +25,14 @@ caproverOneClickApp:
         - id: $$cap_volume_to_backup
           label: Volume to backup
           description: Path of the volume that you want to backup, e.g. `/var/lib/docker/volumes/captain--my-app/_data`
-        - id: $$cap_backup_path
-          label: Backup path
-          defaultValue: '/backups'
-          description: Path where you want to store the backups
+        - id: $$cap_webdav_url
+          label: WEBDAV_URL
+        - id: $$cap_webdav_path
+          label: WEBDAV_PATH
+        - id: $$cap_webdav_username
+          label: Username
+        - id: $$cap_webdav_password
+          label: Password
         - id: $$cap_backup_filename
           label: Backup filename
           defaultValue: 'backup-%Y-%m-%dT%H-%M-%S.tar.gz'
@@ -41,11 +47,11 @@ caproverOneClickApp:
           description: Define this value to enable automatic rotation of old backups. The value declares the number of days for which a backup is kept.
     instructions:
         start: >-
-            Backup Docker volumes locally. See https://github.com/offen/docker-volume-backup.
+            Backup Docker volumes to WebDAV. See https://github.com/offen/docker-volume-backup
         end: >-
             Aaaand you're done! 😄
             Your service is up and running
-    displayName: Offen Docker Backup (Local)
+    displayName: Offen Docker Backup (WebDAV)
     isOfficial: true
-    description: Backup Docker volumes locally
+    description: Backup Docker volumes to WebDAV
     documentation: Taken from https://github.com/offen/docker-volume-backup
