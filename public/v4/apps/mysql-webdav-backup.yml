@@ -1,0 +1,91 @@
+captainVersion: 4
+services:
+    $$cap_appname-local:
+        image: tiredofit/db-backup:$$cap_db_version
+        environment:
+            DEFAULT_EXTRA_OPTS: --skip-ssl
+            DB_TYPE: mysql
+            DB_HOST: $$cap_db_host
+            DB_NAME: ALL
+            DB_USER: $$cap_db_username
+            DB_PASS: $$cap_db_password
+            DB_BACKUP_BEGIN: $$cap_db_cron
+            DB_CLEANUP_TIME: 1
+            CHECKSUM: SHA1
+            COMPRESSION: GZ
+            SPLIT_DB: TRUE
+            CONTAINER_ENABLE_MONITORING: FALSE
+        volumes:
+            - $$cap_appname-data:/backup
+        restart: always
+        caproverExtra:
+            notExposeAsWebApp: 'true'
+    $$cap_appname-webdav:
+        image: offen/docker-volume-backup:$$cap_version
+        depends_on:
+            - $$cap_appname-local
+        environment:
+            WEBDAV_URL: $$cap_webdav_url
+            WEBDAV_PATH: $$cap_webdav_path
+            WEBDAV_USERNAME: $$cap_webdav_username
+            WEBDAV_PASSWORD: $$cap_webdav_password
+            BACKUP_FILENAME: $$cap_backup_filename
+            BACKUP_CRON_EXPRESSION: $$cap_backup_cron_expression
+            BACKUP_RETENTION_DAYS: $$cap_backup_retention_days
+        volumes:
+            - $$cap_appname-data:/backup/data:ro
+        restart: always
+        caproverExtra:
+            notExposeAsWebApp: 'true'
+caproverOneClickApp:
+    variables:
+        - id: $$cap_db_version
+          label: Docker db dump version
+          defaultValue: '4.1.16'
+          description: Check out their Docker page for the valid tags https://hub.docker.com/r/tiredofit/db-backup/tags
+          validRegex: /^([^\s^\/])+$/
+        - id: $$cap_version
+          label: Docker volume backup version
+          defaultValue: 'v2'
+          description: Check out their Docker page for the valid tags https://hub.docker.com/r/offen/docker-volume-backup/tags
+          validRegex: /^([^\s^\/])+$/
+        - id: $$cap_db_host
+          label: DB host
+        - id: $$cap_db_username
+          label: DB username
+        - id: $$cap_db_password
+          label: DB password
+        - id: $$cap_db_cron
+          label: DB dump cron (make sure the webdav cron happens this)
+          defaultValue: '0 0 * * *'
+          description: DB dump run on the given cron schedule. If no value is set, `0 0 * * *` (midnight) will be used. If you do not want the cron to ever run, use `0 0 5 31 2 ?`.
+        - id: $$cap_webdav_url
+          label: WEBDAV URL
+        - id: $$cap_webdav_path
+          label: WEBDAV PATH
+        - id: $$cap_webdav_username
+          label: WebDAV Username
+        - id: $$cap_webdav_password
+          label: WebDav Password
+        - id: $$cap_backup_filename
+          label: Backup filename
+          defaultValue: 'backup-db-%Y-%m-%dT%H-%M-%S.tar.gz'
+          description: The name of the backup file including the `.tar.gz` extension. Format verbs will be replaced as in `strftime`. Omitting them will result in the same filename for every backup run, which means previous versions will be overwritten on subsequent runs. The default results in filenames like `backup-2021-08-29T04-00-00.tar.gz`.
+        - id: $$cap_backup_cron_expression
+          label: Cron expression
+          defaultValue: '10 0 * * *'
+          description: Backups run on the given cron schedule. If no value is set, `10 0 * * *` (10 past midnight) will be used. If you do not want the cron to ever run, use `0 0 5 31 2 ?`.
+        - id: $$cap_backup_retention_days
+          label: Backup retention days
+          defaultValue: '14'
+          description: Define this value to enable automatic rotation of old backups. The value declares the number of days for which a backup is kept.
+    instructions:
+        start: >-
+            Backup Docker DB to WebDAV. See https://github.com/tiredofit/docker-db-backup and https://github.com/offen/docker-volume-backup
+        end: >-
+            Aaaand you're done! 😄
+            Your service is up and running
+    displayName: Docker MySQL Backup (WebDAV)
+    isOfficial: true
+    description: Backup Docker MySQL to WebDAV
+    documentation: Taken from https://github.com/tiredofit/docker-db-backup and https://github.com/offen/docker-volume-backup
