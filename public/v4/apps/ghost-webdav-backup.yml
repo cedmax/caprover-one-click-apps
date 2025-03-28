@@ -1,0 +1,69 @@
+captainVersion: 4
+services:
+    $$cap_appname-backup-db:
+        image: tiredofit/db-backup:$$cap_db_version
+        environment:
+            DEFAULT_EXTRA_OPTS: --skip-ssl
+            DEFAULT_CHECKSUM: SHA1
+            DEFAULT_COMPRESSION: GZ
+            DB_TYPE: mysql
+            DB_HOST: srv-captain--$$cap_appname-db
+            DB_NAME: ghost
+            DB_USER: ghost
+            DB_PASS: $$cap_db_password
+            DB_BACKUP_BEGIN: 0 0 * * *
+            DB_CLEANUP_TIME: 1
+        volumes:
+            - $$cap_appname-backup-db:/backup
+        restart: always
+        caproverExtra:
+            notExposeAsWebApp: 'true'
+    $$cap_appname-backup-webdev:
+        image: offen/docker-volume-backup:$$cap_version
+        depends_on:
+            - $$cap_appname-backup-db
+        environment:
+            WEBDAV_URL: $$cap_webdav_url
+            WEBDAV_PATH: $$cap_webdav_path/$$cap_appname
+            WEBDAV_USERNAME: $$cap_webdav_username
+            WEBDAV_PASSWORD: $$cap_webdav_password
+            BACKUP_FILENAME: %Y-%m-%d.tar.gz
+            BACKUP_CRON_EXPRESSION: 5 0 * * *
+            BACKUP_RETENTION_DAYS: 20
+        volumes:
+            - /var/lib/docker/volumes/captain--$$cap_appname-backup-db/_data:/backup/db:ro
+            - /var/lib/docker/volumes/captain--$$cap_appname-data/_data:/backup/data:ro
+        restart: always
+        caproverExtra:
+            notExposeAsWebApp: 'true'
+caproverOneClickApp:
+    variables:
+        - id: $$cap_db_version
+          label: Docker db dump version
+          defaultValue: '4.1.16'
+          description: Check out their Docker page for the valid tags https://hub.docker.com/r/tiredofit/db-backup/tags
+          validRegex: /^([^\s^\/])+$/
+        - id: $$cap_version
+          label: Docker volume backup version
+          defaultValue: 'v2'
+          description: Check out their Docker page for the valid tags https://hub.docker.com/r/offen/docker-volume-backup/tags
+          validRegex: /^([^\s^\/])+$/
+        - id: $$cap_db_password
+          label: Ghost user db password
+        - id: $$cap_webdav_url
+          label: WEBDAV URL
+        - id: $$cap_webdav_path
+          label: WEBDAV PATH
+        - id: $$cap_webdav_username
+          label: WebDAV Username
+        - id: $$cap_webdav_password
+          label: WebDav Password
+    instructions:
+        start: >-
+            Backup Ghost to WebDAV. See https://github.com/tiredofit/docker-db-backup and https://github.com/offen/docker-volume-backup
+        end: >-
+            Aaaand you're done! 😄
+    displayName: Ghost Backup (WebDAV)
+    isOfficial: true
+    description: Backup Ghost to WebDAV
+    documentation: Taken from https://github.com/tiredofit/docker-db-backup and https://github.com/offen/docker-volume-backup
